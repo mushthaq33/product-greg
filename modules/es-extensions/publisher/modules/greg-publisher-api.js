@@ -14,6 +14,8 @@ var gregAPI = {};
     gregAPI.associations = {};
     gregAPI.serviceDiscovery = {};
     gregAPI.password = {};
+    gregAPI.permissions = {};
+
     var formatResultSet = function(output) {
         var results = {};
         var entry;
@@ -518,5 +520,60 @@ var gregAPI = {};
         }
 
         return properties;
+    };
+
+    gregAPI.permissions.list = function(am, assetId) {
+        var assert = am;
+        var registryPath = assert.get(assetId).path;
+        var userRegistry = am.registry;
+        var PermissionPopulator = Packages.org.wso2.carbon.registry.resource.services.utils.PermissionUtil;
+        var results = {};
+        var result = [];
+        log.info("Inside greg-publisher-api JS");
+        try {
+            var permissionsBean = PermissionPopulator.getPermissions(userRegistry.registry, registryPath);
+            var permissions = permissionsBean.getRolePermissions();
+            var length = permissions.length;
+
+            for (var i = 0; i < length; i++) {
+                var permissionOptions = {};
+                var permission = permissions[i];
+
+                permissionOptions.userName = permission.getUserName();
+                permissionOptions.readAllow = permission.isReadAllow();
+                permissionOptions.readDeny = permission.isReadDeny();
+                permissionOptions.writeAllow = permission.isWriteAllow();
+                permissionOptions.writeDeny = permission.isWriteDeny();
+                permissionOptions.deleteAllow = permission.isDeleteAllow();
+                permissionOptions.deleteDeny = permission.isDeleteDeny();
+                permissionOptions.authorizeAllow = permission.isAuthorizeAllow();
+                permissionOptions.authorizeDeny = permission.isAuthorizeDeny();
+
+                result.push(permissionOptions);
+            }
+        } catch(e) {
+            log.error(e);
+        }
+
+        results.list = result;
+        results.roleNames = permissionsBean.getRoleNames();
+        results.pathWithVersion = permissionsBean.getPathWithVersion();
+        results.isAuthorizeAllowed = permissionsBean.isAuthorizeAllowed();
+        results.isVersionView = permissionsBean.isVersionView();
+
+        return results;
+    };
+
+    gregAPI.permissions.add = function(am, pathToAuthorize, roleToAuthorize, actionToAuthorize, permissionType) {
+        var userRegistry = am.registry;
+        var AddPermissionPopulator = Packages.org.wso2.carbon.registry.resource.services.utils.AddRolePermissionUtil;
+        log.info("Inside greg-publisher-api JS");
+        try {
+            AddPermissionPopulator.addRolePermission(userRegistry.registry, pathToAuthorize, roleToAuthorize, actionToAuthorize, permissionType);
+            return true;
+        } catch(e) {
+            log.error(e);
+            return false;
+        }
     }
 }(gregAPI));
